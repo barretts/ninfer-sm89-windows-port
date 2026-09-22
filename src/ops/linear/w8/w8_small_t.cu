@@ -53,9 +53,11 @@ constexpr auto kMtpGateUpLaunchers =
 constexpr auto kMtpDownLaunchers =
     make_launchers<W8MtpDownProjectionGeometry, kW8MtpDownFirstSmallT>(
         std::make_index_sequence<kW8MtpDownLastSmallT - kW8MtpDownFirstSmallT + 1>{});
+#ifndef NINFER_SM89
 constexpr auto k35bMtpProjectionLaunchers = make_launchers<W835bMtpProjectionGeometry,
                                                            kW835bMtpProjectionFirstSmallT>(
     std::make_index_sequence<kW835bMtpProjectionLastSmallT - kW835bMtpProjectionFirstSmallT + 1>{});
+#endif
 constexpr auto kN5120K25600Launchers =
     make_launchers<W8N5120K25600Geometry, kW8N5120K25600FirstSmallT>(
         std::make_index_sequence<kW8N5120K25600LastSmallT - kW8N5120K25600FirstSmallT + 1>{});
@@ -119,10 +121,14 @@ void launch_w8_small_t(const Tensor& x, const Weight& weight, Tensor& out, cudaS
         weight.k == W835bMtpProjectionGeometry::kInputRows &&
         weight.padded_shape[1] == W835bMtpProjectionGeometry::kInputRows &&
         x.ne[1] >= kW835bMtpProjectionFirstSmallT && x.ne[1] <= kW835bMtpProjectionLastSmallT) {
+#ifdef NINFER_SM89
+        throw std::invalid_argument("35B MTP W8 route is unavailable on SM89");
+#else
         const std::size_t index =
             static_cast<std::size_t>(x.ne[1] - kW835bMtpProjectionFirstSmallT);
         k35bMtpProjectionLaunchers[index](x, weight, out, stream);
         return;
+#endif
     }
     if (weight.n == W8N5120K25600Geometry::kOutputRows &&
         weight.k == W8N5120K25600Geometry::kInputRows &&

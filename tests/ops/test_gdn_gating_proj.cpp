@@ -27,9 +27,17 @@ constexpr Geometry kQwen27{"qwen3_6_27b", 5120, 48, false};
 constexpr Geometry kQwen38Parent{"qwen3_8_27b_parent", 5120, 48, true};
 constexpr Geometry kQwen35{"qwen3_6_35b_a3b", 2048, 32, true};
 
+#ifdef NINFER_SM89
+// The unsplit Ada MMA accumulates BF16 terms in a different order than the Blackwell
+// cooperative reduction. Keep a tight FP32 bound while allowing that rounding difference.
+constexpr ReductionCriterion kGdnProjectionFp32{/*relative_l2=*/4.0e-6,
+                                                /*gross_absolute=*/2.0e-6,
+                                                /*gross_relative_to_max_reference=*/1.0e-5};
+#else
 constexpr ReductionCriterion kGdnProjectionFp32{/*relative_l2=*/1.4e-6,
                                                 /*gross_absolute=*/5.0e-7,
                                                 /*gross_relative_to_max_reference=*/2.5e-6};
+#endif
 constexpr ReductionCriterion kGdnNormOutputBf16{/*relative_l2=*/1.75e-3,
                                                 /*gross_absolute=*/1.0e-4,
                                                 /*gross_relative_to_max_reference=*/4.0e-3};
@@ -416,10 +424,11 @@ int verify_workspace_capacity_contract(const Geometry& geometry,
     }
     const std::size_t norm_interval =
         ops::gdn_norm_gating_proj_workspace_capacity_bytes(geometry.heads, geometry.hidden, 1, 64);
-    const std::size_t norm_witness = std::max(
+    const std::size_t norm_witness = std::max({
+        ops::gdn_norm_gating_proj_workspace_capacity_bytes(geometry.heads, geometry.hidden, 8, 8),
         ops::gdn_norm_gating_proj_workspace_capacity_bytes(geometry.heads, geometry.hidden, 16, 16),
         ops::gdn_norm_gating_proj_workspace_capacity_bytes(geometry.heads, geometry.hidden, 64,
-                                                           64));
+                                                           64)});
     if (norm_interval != norm_witness) {
         std::cerr << geometry.label << ": GDN norm/control interval missed a route endpoint\n";
         ++failures;

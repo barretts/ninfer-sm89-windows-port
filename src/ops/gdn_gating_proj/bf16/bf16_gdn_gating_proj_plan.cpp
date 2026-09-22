@@ -178,6 +178,14 @@ bool cooperative_35_grid_is_resident(Bf16GdnGatingScheduleId schedule, std::int3
 
 bool candidate_is_legal(Bf16GdnGatingScheduleId schedule,
                         const Bf16GdnGatingProblem& problem) noexcept {
+#ifdef NINFER_SM89
+    // The RTX 4060 Ti cannot keep the Blackwell-tuned cooperative grids resident.
+    // The unsplit MMA route preserves the same contraction without a cooperative launch.
+    if (schedule_uses_mma(schedule) &&
+        schedule != Bf16GdnGatingScheduleId::MmaUnsplit) {
+        return false;
+    }
+#endif
     if (!bf16_gdn_gating_admits(problem)) { return false; }
     if (is_27(problem)) {
     if (is_9(problem)) {
@@ -504,12 +512,14 @@ Bf16GdnNormGatingPlan bf16_gdn_norm_gating_resolve_plan(const Bf16GdnGatingProbl
     Bf16GdnGatingPlan control            = bf16_gdn_gating_resolve_plan(problem);
     Bf16GdnNormGatingScheduleId schedule = Bf16GdnNormGatingScheduleId::Composed;
     std::int32_t norm_splits             = 0;
+#ifndef NINFER_SM89
     if (is_35(problem) && problem.cols <= 16) {
         control  = bf16_gdn_gating_resolve_candidate(Bf16GdnGatingScheduleId::MmaCooperativeSplit32,
                                                      problem);
         schedule = Bf16GdnNormGatingScheduleId::MmaCooperativeSplit32;
         norm_splits = 32;
     }
+#endif
     const std::size_t norm_partial_bytes =
         static_cast<std::size_t>(norm_splits) * problem.cols * sizeof(float);
     return {schedule, control, control.workspace_bytes + norm_partial_bytes};

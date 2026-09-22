@@ -94,10 +94,18 @@ Package::WeightsProfile Package::resolve_weights(const artifact::ArtifactIdentit
         return WeightsProfile::Qwen38GroupwiseInt5080;
     }
     if (identity.model_id == model_id && identity.weights_id == "nvfp4") {
+#ifdef NINFER_SM89
+        throw std::runtime_error("NVFP4 weights require SM120; use a groupwise-int artifact on SM89");
+#else
         return WeightsProfile::Qwen36Nvfp4;
+#endif
     }
     if (identity.model_id == qwen3_8_model_id && identity.weights_id == "nvfp4") {
+#ifdef NINFER_SM89
+        throw std::runtime_error("NVFP4 weights require SM120; use a groupwise-int artifact on SM89");
+#else
         return WeightsProfile::Qwen38Nvfp4;
+#endif
     }
     throw std::runtime_error("artifact identity '" + identity.model_id + "/" + identity.weights_id +
                              "' is not supported by target '" + std::string(target_key) + "'");

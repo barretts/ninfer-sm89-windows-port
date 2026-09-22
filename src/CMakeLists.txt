@@ -48,9 +48,14 @@ target_link_libraries(ninfer_artifact PUBLIC ninfer_core)
 # producer warpgroup to its consumer warpgroups. Relocatable device code makes ptxas
 # discard that contract, so this self-contained kernel is intentionally compiled in a
 # non-RDC archive and called through a host launcher from ninfer_ops.
-add_library(ninfer_nvfp4_tma STATIC
-  ops/linear/nvfp4/nvfp4_w4a4_tma.cu
-  ops/linear_swiglu/nvfp4/nvfp4_linear_swiglu_w4a4_tma.cu)
+if(CMAKE_CUDA_ARCHITECTURES STREQUAL "89")
+  add_library(ninfer_nvfp4_tma STATIC
+    ops/linear/nvfp4/nvfp4_w4a4_tma_unsupported.cpp)
+else()
+  add_library(ninfer_nvfp4_tma STATIC
+    ops/linear/nvfp4/nvfp4_w4a4_tma.cu
+    ops/linear_swiglu/nvfp4/nvfp4_linear_swiglu_w4a4_tma.cu)
+endif()
 ninfer_internal_includes(ninfer_nvfp4_tma)
 set_target_properties(ninfer_nvfp4_tma PROPERTIES
   CUDA_SEPARABLE_COMPILATION OFF
@@ -301,6 +306,24 @@ add_library(ninfer_ops STATIC
   ops/wrapper/vision_pos_embed.cpp)
 ninfer_internal_includes(ninfer_ops)
 ninfer_cuda_archive(ninfer_ops)
+if(CMAKE_CUDA_ARCHITECTURES STREQUAL "89")
+  # These exact-target routes exceed Ada's static shared-memory limit or require
+  # NVFP4. They are outside the Qwen3.8 groupwise-int + MTP + Vision profile.
+  get_target_property(_ninfer_ops_sources ninfer_ops SOURCES)
+  list(REMOVE_ITEM _ninfer_ops_sources
+    ops/attn_input_proj/nvfp4/nvfp4_attn_input_w4a4.cu
+    ops/gdn_input_proj/nvfp4/nvfp4_gdn_input_w4a4.cu
+    ops/linear/nvfp4/nvfp4_w4a4.cu
+    ops/linear_add/nvfp4/nvfp4_linear_add_w4a4.cu
+    ops/linear_swiglu/nvfp4/nvfp4_linear_swiglu_w4a4.cu
+    ops/attn_input_proj/w8/w8_attn_input_gemm_splitk.cu
+    ops/linear/w8/w8_rowsplit_gemm_splitk.cu
+    ops/linear_add/w8/w8_linear_add_gemm_splitk.cu
+    ops/linear_pair/w8/w8_pair_gemm_splitk.cu
+    ops/dynamic_grouped_conv/w8/w8_dynamic_grouped_conv_add_materialized.cu)
+  set_property(TARGET ninfer_ops PROPERTY SOURCES
+    ${_ninfer_ops_sources} ops/ada/unsupported_routes.cpp)
+endif()
 target_link_libraries(ninfer_ops PUBLIC ninfer_core PRIVATE ninfer_nvfp4_tma)
 
 # Product-independent text and media mechanisms.

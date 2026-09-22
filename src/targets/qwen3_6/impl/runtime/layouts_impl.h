@@ -856,9 +856,15 @@ void validate_target_options(DeviceContext& device, const EngineOptions& options
         }
         break;
     }
+#ifdef NINFER_SM89
+    if (device.sm() != 89) {
+        throw std::invalid_argument("SM89 build requires compute capability 8.9");
+    }
+#else
     if (device.sm() != 120) {
         throw std::invalid_argument("Qwen3.6 family runtime requires compute capability 12.0");
     }
+#endif
 }
 
 std::unique_ptr<SequencePlanImpl> build_sequence_candidate(const SequencePlanningInputs& inputs,
