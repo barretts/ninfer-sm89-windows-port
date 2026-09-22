@@ -3,6 +3,10 @@
 `build/apps/ninfer-serve` loads one registered artifact and exposes OpenAI- and
 Anthropic-compatible HTTP endpoints over one resident NInfer Engine.
 
+For the SM89 RTX 4060 Ti build, use the [port-specific launcher and limitations](../README-SM89.md).
+The general examples below do not establish SM89 support for NVFP4, 35B-A3B/DFlash,
+CUDA graphs, or 128K context.
+
 ## Start the server
 
 ```bash

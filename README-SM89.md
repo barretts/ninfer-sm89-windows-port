@@ -50,4 +50,11 @@ The artifact SHA-256 is `c4a7e9ab593a7f42d58208fa0065d67a82d61921107686cc9f6ed1e
 - A small chat prompt returned `pong`. Five required `write_code` calls returned valid `path` and `code` arguments, including Python and TypeScript requests. A 512×256 red/blue image was identified correctly.
 - The SM89 `ninfer_gdn_gating_proj_test` GPU regression passes. Its Ada FP32 tolerance accounts for the unsplit accumulation order; Blackwell test tolerances remain unchanged.
 
-These are smoke measurements, not an agent-quality score or steady-state benchmark. The 64K physical allocation and 65,452-token retrieval succeeded, but a full 65,536-token request has not been exercised. MTP acceptance and throughput vary by prompt. CUDA graphs are off to preserve VRAM headroom. The port excludes NVFP4/TMA and DFlash2 kernels that require newer hardware; unsupported model and quantization routes fail explicitly. The original 128K RTX 5080 claim does not transfer to this 16 GB setup and was not validated here.
+## Limitations
+
+- **Model scope:** The validated path is the Qwen3.8-27B `groupwise-int` artifact. This is not a validation of all registered NInfer identities. The 35B-A3B/DFlash profile has not been qualified on SM89.
+- **NVFP4:** The loader rejects NVFP4 artifacts on SM89. Their W4A4/TMA kernels require SM120, and the corresponding SM89 routes fail explicitly.
+- **Other W8 routes:** Several W8 split-K operator routes for other profiles exceed Ada's static shared-memory limit or were not ported. They are excluded from the SM89 build and replaced by explicit errors. DFlash has not been qualified on SM89. This does not disable the tested Qwen3.8 MTP-3 path.
+- **GDN fallback:** Blackwell-tuned cooperative GDN projection routes are disabled on SM89. The unsplit MMA route passes the GPU regression test with an Ada-specific FP32 tolerance, but may have different performance and rounding.
+- **Memory and context:** CUDA graphs are disabled in the launcher to preserve VRAM headroom; graph operation has not been qualified. The 65,536-token physical Q4 KV allocation and a 65,452-token prompt plus 25 generated tokens succeeded. A request at the exact 65,536-token boundary and 128K on this 16 GB card were not validated.
+- **Vision and agent quality:** One image was tested; video input was not. Chat, five required tool calls, image identification, and long-context retrieval are smoke checks, not an agent-quality or stability benchmark. MTP acceptance and throughput vary by prompt.

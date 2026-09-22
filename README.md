@@ -1,5 +1,12 @@
 # NInfer RTX 5080 — Qwen3.8-27B at true 128K + Vision on 16 GB
 
+> **RTX 4060 Ti / SM89 port:** This branch also has a separately tested Qwen3.8-27B
+> `groupwise-int` profile with 65,536 context and physical Q4 KV tokens, MTP-3,
+> image Vision, tool calls, and a loopback OpenAI-compatible API. Start it with
+> [the SM89 launcher](scripts/ninfer-sm89.ps1). See [SM89 setup, results, and
+> limitations](README-SM89.md). The 128K results below are from the original
+> RTX 5080 build; they were not reproduced on the RTX 4060 Ti.
+
 This repository documents a validated NInfer configuration for **Qwen3.8-27B** on one **RTX 5080 16 GB** with a genuine **131,072-token context/KV capacity**, Q4 KV, MTP-3 and Vision enabled.
 
 Vision is now the recommended/default path. The original text-only 128K release remains preserved as the historical baseline.

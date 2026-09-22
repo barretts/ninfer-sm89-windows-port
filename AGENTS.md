@@ -107,19 +107,35 @@ intermediate artifacts are excluded unless requested or themselves the deliverab
 NInfer is a from-scratch C++/CUDA inference engine for maximum single-GPU inference performance on
 a small set of explicitly registered checkpoint artifacts. The supported identities are
 `qwen3.6-27b/groupwise-int`, `qwen3.6-27b/nvfp4`, `qwen3.8-27b/groupwise-int`,
-`qwen3.8-27b/nvfp4`, and `qwen3.6-35b-a3b/groupwise-int`. The current implementation is compiled
-for `sm_120a` and tuned and measured on NVIDIA GeForce RTX 5090. All identities execute Text,
+`qwen3.8-27b/nvfp4`, and `qwen3.6-35b-a3b/groupwise-int`. The default implementation is compiled
+for `sm_120a` and tuned and measured on NVIDIA GeForce RTX 5090. On this branch, an
+additional `sm_89` build has been tested only for the Qwen3.8-27B `groupwise-int`
+artifact on an RTX 4060 Ti: 65,536 logical context and physical Q4 KV tokens,
+MTP-3, Vision image input, required tool calls, and one concurrent HTTP request.
+Do not infer SM89 support for every registered identity or for the 128K RTX 5080
+profile. All identities on the default SM120 build execute Text,
 image/video Vision, MTP, prefix reuse, CLI, OpenAI/Anthropic serving, and measurement through the
 same public `.ninfer` Engine route; the 35B-A3B target additionally supports text-only DFlash.
 
 The current workload is one GPU and one resident model instance with a startup-fixed one to eight
 active requests. The Engine forms one compact decode batch at every round boundary and uses bounded
 FIFO ingress with no request preemption. Large-scale or preemptive continuous batching, priority/QoS
-scheduling, additional checkpoint targets, and retargeting the implementation to another execution
-platform are outside the current product. This is a local, single-owner project. Registered models,
+scheduling, additional checkpoint targets, and retargeting beyond the documented SM120/SM89
+builds are outside the current product. This is a local, single-owner project. Registered models,
 generated artifacts, and the local workflow are trusted.
 Requirements derived from a different workload, trust model, or deployment model are out of scope
 until that product contract is explicitly changed.
+
+For SM89 work, `README-SM89.md` is the hardware-specific authority. NVFP4
+artifacts are rejected because the W4A4/TMA kernels require SM120. Several
+W8 split-K routes are excluded or fail explicitly; DFlash has not been qualified;
+the 35B-A3B/DFlash profile is not qualified on SM89. The Blackwell-tuned
+cooperative GDN routes use an unsplit Ada fallback with a separately tested
+FP32 tolerance. The launcher disables CUDA graphs for memory headroom. Do not
+describe untested routes, CUDA-graph operation, or 128K on the RTX 4060 Ti as
+validated. Video input has not been tested on SM89. Preserve the working
+Qwen3.8 groupwise-int MTP/image-Vision path when
+changing SM89 code.
 
 The 27B and 35B-A3B execution packages are peer compile-time Variants of one identity-free Qwen3.6
 family runtime. The family owns the shared `SequencePlan<Variant>`, `RequestPlan<Variant>`, and
@@ -152,6 +168,7 @@ Read only current authorities relevant to a live decision in the task. The follo
 routing map, not a mandatory reading list:
 
 - `README.md` and executable `--help`: delivered capabilities and exact commands;
+- `README-SM89.md`: SM89 launcher, tested scope, measurements, and limitations;
 - `docs/README.md`: public documentation map;
 - `docs/cli.md`: CLI input, output, sampling, MTP, and runtime options;
 - `docs/serving.md`: OpenAI/Anthropic HTTP behavior;

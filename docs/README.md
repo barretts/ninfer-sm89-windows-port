@@ -2,6 +2,9 @@
 
 Start with the [project README](../README.md) to build NInfer, obtain an artifact, and run the CLI or HTTP server.
 
+The [RTX 4060 Ti / SM89 port guide](../README-SM89.md) records its separate 64K
+profile and unsupported routes. RTX 5080 results below do not describe that port.
+
 ## RTX 5080 true-128K project guides
 
 | Document | Purpose |
